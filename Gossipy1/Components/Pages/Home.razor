@@ -1,0 +1,95 @@
+﻿@page "/"
+
+
+<h1>
+    Popular Communities Around
+</h1>
+
+<button @onclick="Communuties">Show Popular Communities Around</button>
+
+@if (places != null && places.Count > 0)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Place Name</th>
+                <th>Place Address</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var place in places)
+            {
+                <tr>
+                    <td>@place.Name</td>
+                    <td>@place.Address</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else if (places != null && places.Count == 0)
+{
+    <p>No places found within 2 kilometers.</p>
+}
+else if (errorMessage != null)
+{
+    <p>@errorMessage</p>
+}
+
+@code {
+
+    private List<CommunityPlaces>? places;
+    private string errorMessage;
+
+    private async Task Communuties()
+    {
+        try
+        {
+            var location = await geolocation.GetLastKnownLocationAsync();
+            if (location == null)
+            {
+                location = await geolocation.GetLocationAsync(new GeolocationRequest
+                    {
+                        DesiredAccuracy = GeolocationAccuracy.Medium,
+                        Timeout = TimeSpan.FromSeconds(30)
+                    });
+            }
+
+            if (location != null)
+            {
+                var radius = 2000;
+                var apiKey = "AIzaSyBVwZXyZhUa9N6SHgnyMvvYT1-mlnxnEvs"; 
+                var url = $"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={location.Latitude},{location.Longitude}&radius={radius}&type=restaurant&key={apiKey}";
+
+                var response = await client.GetStringAsync(url);
+                var json = Newtonsoft.Json.Linq.JObject.Parse(response);
+
+                Console.WriteLine("dddddddddddddddddddddddddd" + json);
+
+                if (json["results"] != null)
+                {
+                    places = json["results"]
+                        .Select(result => new CommunityPlaces
+                            {
+                                Name = result["name"].ToString(),
+                                Address = result["vicinity"].ToString()
+                            }).ToList();
+                }
+                else
+                {
+                    errorMessage = "No places found in the nearby area.";
+                }
+            }
+            else
+            {
+                errorMessage = "Unable to retrieve location.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to query location or places: {ex.Message}";
+            Debug.WriteLine(errorMessage);
+        }
+    }
+}

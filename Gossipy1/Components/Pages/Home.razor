@@ -1,5 +1,8 @@
 ﻿@page "/"
 
+@inject IGeolocation geolocation 
+
+@inject IJSRuntime JS
 
 <h1>
     Popular Communities Around
@@ -46,6 +49,8 @@ else if (errorMessage != null)
     {
         try
         {
+            using var client = new HttpClient();
+
             var location = await geolocation.GetLastKnownLocationAsync();
             if (location == null)
             {
@@ -55,6 +60,8 @@ else if (errorMessage != null)
                         Timeout = TimeSpan.FromSeconds(30)
                     });
             }
+
+
 
             if (location != null)
             {
